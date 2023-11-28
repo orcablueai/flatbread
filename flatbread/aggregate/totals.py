@@ -123,7 +123,11 @@ def _add_to_axis(
     test = lambda x,lbl: lbl in x if isinstance(x, tuple) else lbl == x
     is_totals_row = lambda x: test(x, totals_name) or test(x, subtotals_name)
     no_totals = [not is_totals_row(item) for item in df.index]
-    totals = pd.Series(df.loc[no_totals].sum(), name=totals_name).to_frame().T
+    if 'agg_map' in kwargs.keys():
+        agg_map = kwargs.get('agg_map',{})
+        totals = pd.Series(df.loc[no_totals].agg(**agg_map), name=totals_name).to_frame().T
+    else:
+        totals = pd.Series(df.loc[no_totals].sum(), name=totals_name).to_frame().T
 
     if isinstance(df.index, pd.MultiIndex):
         nlevels = df.index.nlevels
@@ -177,9 +181,15 @@ def _add_to_axis_level(
     **kwargs
 ) -> pd.DataFrame:
     is_totals_row = lambda x: totals_name in x or subtotals_name in x
-    totals = df.loc[
-        [not is_totals_row(item) for item in df.index]
-    ].groupby(level=list(range(level)), sort=False).sum()
+    if 'agg_map' in kwargs.keys():
+        agg_map = kwargs.get('agg_map',{})
+        totals = df.loc[
+            [not is_totals_row(item) for item in df.index]
+        ].groupby(level=list(range(level)), sort=False).agg(**agg_map)
+    else:
+        totals = df.loc[
+            [not is_totals_row(item) for item in df.index]
+        ].groupby(level=list(range(level)), sort=False).sum()
 
     def make_key(key, item, nlevels):
         key = utils.listify(key)
